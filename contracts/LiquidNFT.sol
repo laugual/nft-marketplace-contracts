@@ -1,4 +1,4 @@
-pragma ton-solidity >=0.43.0;
+pragma ton-solidity >=0.44.0;
 pragma AbiHeader time;
 pragma AbiHeader pubkey;
 pragma AbiHeader expire;
@@ -32,35 +32,16 @@ contract LiquidNFT is ILiquidNFT
 
     //========================================
     //
-    constructor(address ownerAddress) public onlyRoot
+    constructor(address ownerAddress, uint256 uploaderPubkey) public onlyRoot
     {
         require(ownerAddress != addressZero, ERROR_MESSAGE_OWNER_CAN_NOT_BE_ZERO);
         tvm.accept();
         _reserve();
         _populateInfo(ownerAddress, now);
+        _uploaderPubkey = uploaderPubkey;
 
         // Return the change
         ownerAddress.transfer(0, true, 128);
-    }
-    
-    //========================================
-    //
-    function changeOwner(address newOwnerAddress) external onlyOwner isSealed
-    {
-        _reserve();
-        _info.ownerAddress = newOwnerAddress;
-
-        // Return the change
-        address(msg.sender).transfer(0, true, 128);
-    }
-
-    function callChangeOwner(address newOwnerAddress) external responsible onlyOwner isSealed returns (address)
-    {
-        _reserve();
-        _info.ownerAddress = newOwnerAddress;
-
-        // Return the change
-        return {value: 0, flag: 128}(newOwnerAddress);
     }
 }
 

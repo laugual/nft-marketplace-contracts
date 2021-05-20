@@ -5,7 +5,8 @@
 		{
 			"name": "constructor",
 			"inputs": [
-				{"name":"ownerAddress","type":"address"}
+				{"name":"ownerAddress","type":"address"},
+				{"name":"uploaderPubkey","type":"uint256"}
 			],
 			"outputs": [
 			]
@@ -64,6 +65,7 @@
 		{
 			"name": "createEmptyNFT",
 			"inputs": [
+				{"name":"uploaderPubkey","type":"uint256"}
 			],
 			"outputs": [
 			]
@@ -73,7 +75,7 @@
 			"inputs": [
 			],
 			"outputs": [
-				{"components":[{"name":"dtCreated","type":"uint32"},{"name":"ownerAddress","type":"address"}],"name":"value0","type":"tuple"}
+				{"components":[{"name":"dtCreated","type":"uint32"},{"name":"ownerAddress","type":"address"},{"name":"authorAddress","type":"address"}],"name":"value0","type":"tuple"}
 			]
 		},
 		{
@@ -82,7 +84,7 @@
 				{"name":"_answer_id","type":"uint32"}
 			],
 			"outputs": [
-				{"components":[{"name":"dtCreated","type":"uint32"},{"name":"ownerAddress","type":"address"}],"name":"value0","type":"tuple"}
+				{"components":[{"name":"dtCreated","type":"uint32"},{"name":"ownerAddress","type":"address"},{"name":"authorAddress","type":"address"}],"name":"value0","type":"tuple"}
 			]
 		},
 		{
@@ -120,6 +122,32 @@
 			]
 		},
 		{
+			"name": "getUploaderPubkey",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"value0","type":"uint256"}
+			]
+		},
+		{
+			"name": "changeOwner",
+			"inputs": [
+				{"name":"newOwnerAddress","type":"address"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "callChangeOwner",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"},
+				{"name":"newOwnerAddress","type":"address"}
+			],
+			"outputs": [
+				{"name":"value0","type":"address"}
+			]
+		},
+		{
 			"name": "sealMedia",
 			"inputs": [
 				{"name":"extension","type":"bytes"},
@@ -135,6 +163,23 @@
 				{"name":"partNum","type":"uint256"},
 				{"name":"partsTotal","type":"uint256"},
 				{"name":"data","type":"bytes"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "setMediaPartExternal",
+			"inputs": [
+				{"name":"partNum","type":"uint256"},
+				{"name":"partsTotal","type":"uint256"},
+				{"name":"data","type":"bytes"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "touch",
+			"inputs": [
 			],
 			"outputs": [
 			]

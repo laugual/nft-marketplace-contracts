@@ -83,7 +83,7 @@ class Test_01_DeployCollection(unittest.TestCase):
 
     # 1. Giver
     def test_1(self):
-        giverGive(getClient(), self.msig.ADDRESS,       TON * 80)
+        giverGive(getClient(), self.msig.ADDRESS,       TON * 10)
         giverGive(getClient(), self.collection.ADDRESS, TON * 1)
 
     # 2. Deploy multisig
@@ -93,72 +93,42 @@ class Test_01_DeployCollection(unittest.TestCase):
 
     # 3. Deploy collection
     def test_3(self):
-        #result = self.collection.deploy(ownerAddress=self.msig.ADDRESS, extension="1", contents="11", name="1", comment="1")
-        result = self.collection.deploy(ownerAddress=self.msig.ADDRESS)
+        result = self.collection.deploy(ownerAddress=self.msig.ADDRESS, uploaderPubkey="0x00")
         self.assertEqual(result[1]["errorCode"], 0)
-        print("COL:", self.collection.ADDRESS)
-        print("TOK:", self.token1.ADDRESS)
 
     # 4. Get info
     def test_4(self):
-        result = self.collection.getOwnerAddress()
-
-
-        #result = self.collection.createNFT(msig=self.msig, value=500000000, extension=ext, contents=media, name=name, comment="put it on your hand you punk")
-        #msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
-        #pprint(msgArray)
-
-        
+        # Collection cover is empty-garbage
         self.collection.sealMedia(msig=self.msig, value=100000000, extension="kek", name="kek-name", comment="kek-comment")
         
-
-
-        result = getAccountGraphQL(tonClient=getClient(), accountID=self.msig.ADDRESS, fields="balance(format:DEC)")
-        print("BALANCE:", result)
-
-        # LOB LOB LOB
+        # LOB
         #media, name, ext = readBinaryFile("./image_chain.png")
         media, name, ext = readBinaryFile("./image_262kb.png")
         chunks = chunkstring(media, 30000)
         num = len(chunks)
 
         # 1. 
-        result = self.collection.createEmptyNFT(msig=self.msig, value=500000000)
-        #msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
-        #pprint(msgArray)
+        result = self.collection.createEmptyNFT(msig=self.msig, value=500000000, uploaderPubkey="0x" + self.token1.SIGNER.keys.public)
 
-        #result = self.collection.LobFilePrepare(msig=self.msig, value=500000000, parts=num)
+        # For external uploader only
+        giverGive(getClient(), self.token1.ADDRESS, TON * 5)
+
+        # 2.
+        print("")
         for i in range(0, num):
-            print(i)
-            #result = self.collection.LobFileSet (msig=self.msig, value=500000000, part=i, data=chunks[i])
-            result = self.token1.setMediaPart(msig=self.msig, value=100000000, partNum=i, partsTotal=num, data=chunks[i])
-            #result = self.token1.setMediaPart2(partNum=i, partsTotal=num, data=chunks[i])
+            progress = (i/(num-1))
+            print("\rUploading media: [{0:50s}] {1:.1f}%".format('#' * int(progress * 50), progress*100), end="", flush=True)
+            #result = self.token1.setMediaPart(msig=self.msig, value=100000000, partNum=i, partsTotal=num, data=chunks[i])
+            result = self.token1.setMediaPartExternal(partNum=i, partsTotal=num, data=chunks[i])
+        print("")
             
-
+        # 3.
         self.token1.sealMedia(msig=self.msig, value=100000000, extension=ext, name=name, comment="put it on your hand you punk")
 
-
-        #result = self.collection.LobFileGet()
-        #print(result)
-        #self.assertEqual("".join(result), media)
-        
-        #result = self.collection.createNFTFromLob(msig=self.msig, value=9500000000, extension=ext, name=name, comment="put it on your hand you punk")
-        #msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
-        #pprint(msgArray)
-
         result = self.token1.getMedia()
-
-        #print(result["contents"])
-
-        self.assertEqual("".join(result["contents"]),  media)
-        self.assertEqual(result["extension"],          stringToHex(ext))
-        self.assertEqual(result["name"],               stringToHex(name))
-
-        result = getAccountGraphQL(tonClient=getClient(), accountID=self.msig.ADDRESS, fields="balance(format:DEC)")
-        print("BALANCE:", result)
-
-        #result = self.collection.LobFilePrepare(msig=self.msig, value=500000000, parts=0)
-
+        self.assertEqual("".join(result["contents"]), media)
+        self.assertEqual(result["extension"],         stringToHex(ext))
+        self.assertEqual(result["name"],              stringToHex(name))
 
     # 5. Cleanup
     def test_5(self):

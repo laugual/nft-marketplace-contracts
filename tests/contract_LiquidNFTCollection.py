@@ -21,10 +21,8 @@ class LiquidNFTCollection(object):
         self.NAME        = collectionName
         self.NAME_HEX    = stringToHex(collectionName)
 
-    #def deploy(self, ownerAddress: str, extension: str, contents: str, name: str, comment: str):
-    def deploy(self, ownerAddress: str):
-        #self.CONSTRUCTOR = {"ownerAddress":ownerAddress, "extension":stringToHex(extension), "contents":contents, "name":stringToHex(name), "comment":stringToHex(comment)}
-        self.CONSTRUCTOR = {"ownerAddress":ownerAddress}
+    def deploy(self, ownerAddress: str, uploaderPubkey: str):
+        self.CONSTRUCTOR = {"ownerAddress":ownerAddress, "uploaderPubkey":uploaderPubkey}
         result = deployContract(tonClient=self.TONCLIENT, abiPath=self.ABI, tvcPath=self.TVC, constructorInput=self.CONSTRUCTOR, initialData=self.INITDATA, signer=self.SIGNER, initialPubkey=self.PUBKEY)
         return result
 
@@ -49,8 +47,8 @@ class LiquidNFTCollection(object):
         result = self._callFromMultisig(msig=msig, functionName="setMediaPart", functionParams={"partNum":partNum, "partsTotal":partsTotal, "data":data}, value=value, flags=1)
         return result
 
-    def createEmptyNFT(self, msig: SetcodeMultisig, value: int):
-        result = self._callFromMultisig(msig=msig, functionName="createEmptyNFT", functionParams={}, value=value, flags=1)
+    def createEmptyNFT(self, msig: SetcodeMultisig, value: int, uploaderPubkey: str):
+        result = self._callFromMultisig(msig=msig, functionName="createEmptyNFT", functionParams={"uploaderPubkey":uploaderPubkey}, value=value, flags=1)
         return result
 
     def getCollectionName(self):

@@ -38,8 +38,8 @@ class LiquidNFT(object):
         result = self._callFromMultisig(msig=msig, functionName="setMediaPart", functionParams={"partNum":partNum, "partsTotal":partsTotal, "data":data}, value=value, flags=1)
         return result
 
-    def setMediaPart2(self, partNum: str, partsTotal: str, data: str):
-        result = self._call(functionName="setMediaPart", functionParams={"partNum":partNum, "partsTotal":partsTotal, "data":data}, signer=self.SIGNER)
+    def setMediaPartExternal(self, partNum: str, partsTotal: str, data: str):
+        result = self._call(functionName="setMediaPartExternal", functionParams={"partNum":partNum, "partsTotal":partsTotal, "data":data}, signer=self.SIGNER)
         return result
 
     def getInfo(self):

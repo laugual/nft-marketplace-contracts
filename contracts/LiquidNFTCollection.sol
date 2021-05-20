@@ -1,4 +1,4 @@
-pragma ton-solidity >=0.43.0;
+pragma ton-solidity >=0.44.0;
 pragma AbiHeader time;
 pragma AbiHeader pubkey;
 pragma AbiHeader expire;
@@ -50,15 +50,15 @@ contract LiquidNFTCollection is ILiquidNFT
 
     //========================================
     //
-    //constructor(address ownerAddress, bytes extension, bytes contents, bytes name, bytes comment) public
-    constructor(address ownerAddress) public
+    constructor(address ownerAddress, uint256 uploaderPubkey) public
     {
         require(ownerAddress != addressZero, ERROR_MESSAGE_OWNER_CAN_NOT_BE_ZERO);
         tvm.accept();
         _reserve();
         _populateInfo(ownerAddress, now);
-        
-        _tokensIssued  = 0;
+
+        _uploaderPubkey = uploaderPubkey;        
+        _tokensIssued   = 0;
         
         // Return the change
         ownerAddress.transfer(0, true, 128);
@@ -66,56 +66,13 @@ contract LiquidNFTCollection is ILiquidNFT
 
     //========================================
     //
-    function createEmptyNFT() public onlyOwner isSealed
+    function createEmptyNFT(uint256 uploaderPubkey) public onlyOwner isSealed reserve
     {
-        _reserve();
-
-        // TODO
         ( , TvmCell stateInit) = calculateFutureNFTAddress(_tokensIssued);
-        //new LiquidNFT{value: 0, flag: 128, stateInit: stateInit}(_info.ownerAddress, extension, contents, name, comment);
-        new LiquidNFT{value: 0, flag: 128, stateInit: stateInit}(_info.ownerAddress);
+        new LiquidNFT{value: 0, flag: 128, stateInit: stateInit}(_info.ownerAddress, uploaderPubkey);
 
         _tokensIssued += 1;
     }
-
-    //========================================
-    //
-    /*function createNFT(bytes extension, bytes[] contents, bytes name, bytes comment) public onlyOwner
-    {
-        _reserve();
-
-        // TODO
-        ( , TvmCell stateInit) = calculateFutureNFTAddress(_tokensIssued);
-        new LiquidNFT{value: 0, flag: 128, stateInit: stateInit}(_info.ownerAddress, extension, contents, name, comment);
-
-        _tokensIssued += 1;
-    }*/
-
-    //========================================
-    //
-    /*function createNFTFromExternal(address addressExternalMedia) public onlyOwner
-    {
-        _reserve();
-        _externalMedia = addressExternalMedia;
-        IMediaProducer(addressExternalMedia).getMedia{value: 0, callback: callbackOnCreateNFTFromExternal, flag: 128}();
-    }
-
-    function callbackOnCreateNFTFromExternal(nftMedia media) public onlyExternalMedia
-    {
-        _externalMedia = addressZero;
-        createNFT(media.extension, media.contents, media.name, media.comment);
-    }*/
-
-    //========================================
-    //
-    /*onBounce(TvmSlice slice) external 
-    {
-		uint32 func = slice.decode(uint32);
-		if(func == tvm.functionId(createNFTFromExternal)) 
-        {
-            _externalMedia = addressZero;
-        }
-    }*/
 }
 
 //================================================================================
