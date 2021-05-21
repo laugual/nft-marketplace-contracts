@@ -12,6 +12,7 @@ from   pathlib import Path
 from   pprint import pprint
 from   contract_LiquidNFT           import LiquidNFT
 from   contract_LiquidNFTCollection import LiquidNFTCollection
+from   contract_LiquisorFactory     import LiquisorFactory
 
 TON = 1000000000
 SERVER_ADDRESS = "https://net.ton.dev"
@@ -49,7 +50,7 @@ for _, arg in enumerate(sys.argv[1:]):
 # EXIT CODE FOR SINGLE-MESSAGE OPERATIONS
 # we know we have only 1 internal message, that's why this wrapper has no filters
 def _getAbiArray():
-    return ["../bin/LiquidNFT.abi.json", "../bin/LiquidNFTCollection.abi.json", "../bin/SetcodeMultisigWallet.abi.json"]
+    return ["../bin/LiquidNFT.abi.json", "../bin/LiquidNFTCollection.abi.json", "../bin/LiquisorFactory.abi.json", "../bin/SetcodeMultisigWallet.abi.json"]
 
 def _getExitCode(msgIdArray):
     abiArray     = _getAbiArray()
@@ -129,6 +130,54 @@ class Test_01_DeployCollection(unittest.TestCase):
         self.assertEqual("".join(result["contents"]), media)
         self.assertEqual(result["extension"],         stringToHex(ext))
         self.assertEqual(result["name"],              stringToHex(name))
+
+    # 5. Cleanup
+    def test_5(self):
+        result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+class Test_02_DeployCollectionFromFactory(unittest.TestCase):
+
+    msig       = SetcodeMultisig(tonClient=getClient())
+    factory    = LiquisorFactory(tonClient=getClient(), ownerAddress=msig.ADDRESS)
+    collection = LiquidNFTCollection(tonClient=getClient(), collectionName="mycol", signer=msig.SIGNER)
+    
+    def test_0(self):
+        print("\n\n----------------------------------------------------------------------")
+        print("Running:", self.__class__.__name__)
+
+    # 1. Giver
+    def test_1(self):
+        giverGive(getClient(), self.msig.ADDRESS,    TON * 10)
+        giverGive(getClient(), self.factory.ADDRESS, TON * 1)
+
+        print(self.collection.ADDRESS)
+
+    # 2. Deploy multisig
+    def test_2(self):
+        result = self.msig.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+
+    # 3. Deploy factory
+    def test_3(self):
+        result = self.factory.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+
+    # 4. Get info
+    def test_4(self):
+        self.factory.setCollectionCode(msig=self.msig, value=TON, code=self.collection.CODE    )
+        self.factory.setTokenCode     (msig=self.msig, value=TON, code=self.collection.CODE_NFT)
+
+        result = self.factory.createNFTCollection(msig=self.msig, value=TON, collectionName="mycol", ownerAddress=self.msig.ADDRESS, ownerPubkey="0x"+self.msig.SIGNER.keys.public, uploaderPubkey="0x00")
+        self.assertEqual(result[1]["errorCode"], 0)
+
+        #msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        #pprint(msgArray)
+
+        self.collection.sealMedia(msig=self.msig, value=100000000, extension="kek", name="kek-name", comment="kek-comment")
+
+        result = self.collection.getMedia()
+        print(result)
 
     # 5. Cleanup
     def test_5(self):

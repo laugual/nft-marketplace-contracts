@@ -46,7 +46,7 @@ contract LiquisorFactory
 
     //========================================
     //
-    function calculateFutureNFTCollectionAddress(bytes collectionName) private inline view returns (address, TvmCell)
+    function calculateFutureNFTCollectionAddress(bytes collectionName, uint256 ownerPubkey) private inline view returns (address, TvmCell)
     {
         TvmCell stateInit = tvm.buildStateInit({
             contr: LiquidNFTCollection,
@@ -54,7 +54,8 @@ contract LiquisorFactory
                 _collectionName: collectionName,
                 _tokenCode:      _tokenCode
             },
-            code: _collectionCode
+            code:   _collectionCode,
+            pubkey: ownerPubkey
         });
 
         return (address(tvm.hash(stateInit)), stateInit);
@@ -132,21 +133,21 @@ contract LiquisorFactory
 
     //========================================
     // 
-    constructor() public onlyOwner
+    constructor() public
     {
         tvm.accept();
         // Return the change
-        msg.sender.transfer(0, true, 128);
+        _ownerAddress.transfer(0, true, 128);
     }
 
     //========================================
     // 
-    function createNFTCollection(bytes collectionName, address ownerAddress, uint256 uploaderPubkey) external
+    function createNFTCollection(bytes collectionName, address ownerAddress, uint256 ownerPubkey, uint256 uploaderPubkey) external
     {
         // TODO: add require that code in TvmCell exists
         _reserve();
 
-        ( , TvmCell stateInit) = calculateFutureNFTCollectionAddress(collectionName);
+        ( , TvmCell stateInit) = calculateFutureNFTCollectionAddress(collectionName, ownerPubkey);
         new LiquidNFTCollection{value: 0, flag: 128, stateInit: stateInit}(ownerAddress, uploaderPubkey);
     }
 

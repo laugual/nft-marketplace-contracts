@@ -39,6 +39,8 @@ class LiquidNFTCollection(object):
         result = runFunction(tonClient=self.TONCLIENT, abiPath=self.ABI, contractAddress=self.ADDRESS, functionName=functionName, functionParams=functionParams)
         return result
 
+    # ========================================
+    #
     def sealMedia(self, msig: SetcodeMultisig, value: int, extension: str, name: str, comment: str):
         result = self._callFromMultisig(msig=msig, functionName="sealMedia", functionParams={"extension":stringToHex(extension), "name":stringToHex(name), "comment":stringToHex(comment)}, value=value, flags=1)
         return result
@@ -47,10 +49,18 @@ class LiquidNFTCollection(object):
         result = self._callFromMultisig(msig=msig, functionName="setMediaPart", functionParams={"partNum":partNum, "partsTotal":partsTotal, "data":data}, value=value, flags=1)
         return result
 
+    def setMediaPartExternal(self, partNum: str, partsTotal: str, data: str):
+        result = self._call(functionName="setMediaPartExternal", functionParams={"partNum":partNum, "partsTotal":partsTotal, "data":data}, signer=self.SIGNER)
+        return result
+
+    # ========================================
+    #
     def createEmptyNFT(self, msig: SetcodeMultisig, value: int, uploaderPubkey: str):
         result = self._callFromMultisig(msig=msig, functionName="createEmptyNFT", functionParams={"uploaderPubkey":uploaderPubkey}, value=value, flags=1)
         return result
 
+    # ========================================
+    #
     def getCollectionName(self):
         result = self._run(functionName="getCollectionName", functionParams={})
         return result
@@ -61,6 +71,14 @@ class LiquidNFTCollection(object):
 
     def getTokensIssued(self):
         result = self._run(functionName="getTokensIssued", functionParams={})
+        return result
+
+    def getInfo(self):
+        result = self._run(functionName="getInfo", functionParams={})
+        return result
+
+    def getMedia(self):
+        result = self._run(functionName="getMedia", functionParams={})
         return result
 
     def getOwnerAddress(self):

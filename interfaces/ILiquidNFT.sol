@@ -74,6 +74,7 @@ abstract contract ILiquidNFT
     function  getOwnerAddress()   external             view         returns (address)  {    return                      (_info.ownerAddress); }
     function callOwnerAddress()   external responsible view reserve returns (address)  {    return {value: 0, flag: 128}(_info.ownerAddress); }
     function  getUploaderPubkey() external             view         returns (uint256)  {    return                      (_uploaderPubkey);    }
+    function callUploaderPubkey() external responsible view reserve returns (uint256)  {    return {value: 0, flag: 128}(_uploaderPubkey);    }
 
     //========================================
     //

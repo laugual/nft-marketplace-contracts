@@ -46,6 +46,7 @@
 			"inputs": [
 				{"name":"collectionName","type":"bytes"},
 				{"name":"ownerAddress","type":"address"},
+				{"name":"ownerPubkey","type":"uint256"},
 				{"name":"uploaderPubkey","type":"uint256"}
 			],
 			"outputs": [
