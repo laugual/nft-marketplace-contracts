@@ -20,6 +20,10 @@ contract LiquisorFactory
     //========================================
     // Error codes
     uint constant ERROR_MESSAGE_SENDER_IS_NOT_MY_OWNER = 100;
+    uint constant ERROR_NO_COLLECTION_CODE             = 200;
+    uint constant ERROR_NO_NFT_TOKEN_CODE              = 201;
+    uint constant ERROR_NO_AUCTION_DNS_CODE            = 202;
+    uint constant ERROR_NO_AUCTION_NFT_TOKEN_CODE      = 203;
 
     //========================================
     // Variables
@@ -144,7 +148,9 @@ contract LiquisorFactory
     // 
     function createNFTCollection(bytes collectionName, address ownerAddress, uint256 ownerPubkey, uint256 uploaderPubkey) external
     {
-        // TODO: add require that code in TvmCell exists
+        require(_collectionCode.toSlice().empty()   == false, ERROR_NO_COLLECTION_CODE);
+        require(_tokenCode.toSlice().empty()        == false, ERROR_NO_NFT_TOKEN_CODE);
+        
         _reserve();
 
         ( , TvmCell stateInit) = calculateFutureNFTCollectionAddress(collectionName, ownerPubkey);
@@ -165,7 +171,8 @@ contract LiquisorFactory
                                     uint32 dtStart, 
                                     uint32 dtEnd) external
     {
-        // TODO: add require that code in TvmCell exists
+        require(_auctionDnsCode.toSlice().empty() == false, ERROR_NO_AUCTION_DNS_CODE);
+
         _reserve();
 
         ( , TvmCell stateInit) = calculateFutureAuctionDnsAddress(escrowAddress, escrowPercent, sellerAddress, buyerAddress, assetAddress, auctionType, minBid, minPriceStep, buyNowPrice, dtStart, dtEnd);
@@ -186,10 +193,14 @@ contract LiquisorFactory
                                     uint32 dtStart, 
                                     uint32 dtEnd) external
     {
-        // TODO: add require that code in TvmCell exists
+        require(_auctionTokenCode.toSlice().empty() == false, ERROR_NO_AUCTION_NFT_TOKEN_CODE);
+
         _reserve();
 
         ( , TvmCell stateInit) = calculateFutureAuctionTokenAddress(escrowAddress, escrowPercent, sellerAddress, buyerAddress, assetAddress, auctionType, minBid, minPriceStep, buyNowPrice, dtStart, dtEnd);
         new AuctionLiquidNFT{value: 0, flag: 128, stateInit: stateInit}();
     }
 }
+
+//================================================================================
+//

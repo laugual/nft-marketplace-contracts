@@ -155,7 +155,7 @@ class Test_02_DeployCollectionFromFactory(unittest.TestCase):
         giverGive(getClient(), self.msig.ADDRESS,    TON * 10)
         giverGive(getClient(), self.factory.ADDRESS, TON * 1)
 
-        print(self.collection.ADDRESS)
+        #print(self.collection.ADDRESS)
 
     # 2. Deploy multisig
     def test_2(self):
@@ -181,7 +181,7 @@ class Test_02_DeployCollectionFromFactory(unittest.TestCase):
         self.collection.sealMedia(msig=self.msig, value=100000000, extension="kek", name="kek-name", comment="kek-comment")
 
         result = self.collection.getMedia()
-        print(result)
+        #print(result)
 
     # 5. Cleanup
     def test_5(self):
@@ -190,7 +190,7 @@ class Test_02_DeployCollectionFromFactory(unittest.TestCase):
 
 # ==============================================================================
 # 
-class Test_03_DeployDnsAuction(unittest.TestCase):
+class Test_03_CancelDnsAuction(unittest.TestCase):
 
     msig    = SetcodeMultisig(tonClient=getClient())
     msig2   = SetcodeMultisig(tonClient=getClient())
@@ -262,28 +262,210 @@ class Test_03_DeployDnsAuction(unittest.TestCase):
         result = self.auction.receiveAsset(msig=self.msig, value=100000000)
         msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
 
-        result = self.auction.bid(msig=self.msig2, value=TON*7)
-        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
-        #pprint(msgArray)
-
+        # try to finalize when it's not the time to do that
         result = self.auction.finalize(msig=self.msig2, value=TON)
-        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
-        pprint(msgArray)
+        exitCode = _getExitCode(result[0].transaction["out_msgs"])
+        self.assertEqual(exitCode, 203) # ERROR_AUCTION_IN_PROCESS
 
-        print("---------------------")
+        result = self.auction.cancelAuction(msig=self.msig, value=TON)
+        result = self.auction.finalize     (msig=self.msig2, value=TON)
+
+        # second time is a charm
         result = self.auction.finalize(msig=self.msig2, value=TON)
-        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
-        pprint(msgArray)
-
-
         #msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        #pprint(msgArray)
+        
+        result = self.auction.getInfo()
+        result = self.domain.run(functionName="getWhois", functionParams={})
+        self.assertEqual(result["ownerAddress"], self.msig.ADDRESS)
+
+    # 5. Cleanup
+    def test_5(self):
+        result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+        result = self.domain.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+# ==============================================================================
+# 
+class Test_04_DeployDnsAuctionPrivate(unittest.TestCase):
+
+    msig    = SetcodeMultisig(tonClient=getClient())
+    msig2   = SetcodeMultisig(tonClient=getClient())
+    factory = LiquisorFactory(tonClient=getClient(), ownerAddress=msig.ADDRESS)
+    domain  = DnsRecordTEST(tonClient=getClient(), name="kek")
+    dtNow   = getNowTimestamp()
+    
+    auction = AuctionDnsRecord(
+        tonClient     = getClient(), 
+        escrowAddress = msig.ADDRESS, 
+        escrowPercent = 500, 
+        sellerAddress = msig.ADDRESS, 
+        buyerAddress  = msig2.ADDRESS, 
+        assetAddress  = domain.ADDRESS, 
+        auctionType   = 2, # PRIVATE_BUY 
+        minBid        = TON, 
+        minPriceStep  = TON, 
+        buyNowPrice   = TON*6, 
+        dtStart       = dtNow+1, 
+        dtEnd         = dtNow+70)
+    
+    def test_0(self):
+        print("\n\n----------------------------------------------------------------------")
+        print("Running:", self.__class__.__name__)
+
+    # 1. Giver
+    def test_1(self):
+        giverGive(getClient(), self.msig.ADDRESS,    TON * 10)
+        giverGive(getClient(), self.msig2.ADDRESS,   TON * 20)
+        giverGive(getClient(), self.factory.ADDRESS, TON * 1)
+        giverGive(getClient(), self.domain.ADDRESS,  TON * 1)
+        giverGive(getClient(), self.auction.ADDRESS, TON * 1)
+
+        #print(self.auction.ADDRESS)
+
+    # 2. Deploy multisig
+    def test_2(self):
+        result = self.msig.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.domain.deploy(ownerAddress=self.msig.ADDRESS)
+        self.assertEqual(result[1]["errorCode"], 0)
+
+    # 3. Deploy something else
+    def test_3(self):
+        result = self.factory.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        
+    # 4. Get info
+    def test_4(self):
+        self.factory.setAuctionDnsCode(msig=self.msig, value=TON, code=self.auction.CODE)
+
+        result = self.factory.createAuctionDnsRecord(msig=self.msig, value=TON, 
+            escrowAddress = self.msig.ADDRESS, 
+            escrowPercent = 500, 
+            sellerAddress = self.msig.ADDRESS, 
+            buyerAddress  = self.msig2.ADDRESS, 
+            assetAddress  = self.domain.ADDRESS, 
+            auctionType   = 2, # PRIVATE_BUY 
+            minBid        = TON, 
+            minPriceStep  = TON, 
+            buyNowPrice   = TON*6, 
+            dtStart       = self.dtNow+1, 
+            dtEnd         = self.dtNow+70)
+        
+        result = self.domain.callFromMultisig(msig=self.msig, functionName="changeOwner", functionParams={"newOwnerAddress": self.auction.ADDRESS}, value=100000000, flags=1)
+
+        result = self.auction.receiveAsset(msig=self.msig,  value=100000000)
+        result = self.auction.bid         (msig=self.msig2, value=TON*7)
+        result = self.auction.finalize    (msig=self.msig2, value=TON)
+
+        # second time is a charm
+        result = self.auction.finalize(msig=self.msig2, value=TON)
+        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
         #pprint(msgArray)
 
         result = self.auction.getInfo()
-        print(result)
-
         result = self.domain.run(functionName="getWhois", functionParams={})
-        print("msig:", self.msig.ADDRESS, "\nmsig2:", self.msig2.ADDRESS, "\nauction:", self.auction.ADDRESS, "\ndomain:", result["ownerAddress"])
+        self.assertEqual(result["ownerAddress"], self.msig2.ADDRESS)
+
+    # 5. Cleanup
+    def test_5(self):
+        result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+        result = self.domain.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+# ==============================================================================
+# 
+class Test_05_DeployDnsAuctionPublic(unittest.TestCase):
+
+    msig    = SetcodeMultisig(tonClient=getClient())
+    msig2   = SetcodeMultisig(tonClient=getClient())
+    factory = LiquisorFactory(tonClient=getClient(), ownerAddress=msig.ADDRESS)
+    domain  = DnsRecordTEST(tonClient=getClient(), name="kek")
+    dtNow   = getNowTimestamp()
+    
+    auction = AuctionDnsRecord(
+        tonClient     = getClient(), 
+        escrowAddress = msig.ADDRESS, 
+        escrowPercent = 500, 
+        sellerAddress = msig.ADDRESS, 
+        buyerAddress  = msig2.ADDRESS, 
+        assetAddress  = domain.ADDRESS, 
+        auctionType   = 1, # PUBLIC_BUY 
+        minBid        = TON, 
+        minPriceStep  = TON, 
+        buyNowPrice   = TON*6, 
+        dtStart       = dtNow+1, 
+        dtEnd         = dtNow+70)
+    
+    def test_0(self):
+        print("\n\n----------------------------------------------------------------------")
+        print("Running:", self.__class__.__name__)
+
+    # 1. Giver
+    def test_1(self):
+        giverGive(getClient(), self.msig.ADDRESS,    TON * 10)
+        giverGive(getClient(), self.msig2.ADDRESS,   TON * 20)
+        giverGive(getClient(), self.factory.ADDRESS, TON * 1)
+        giverGive(getClient(), self.domain.ADDRESS,  TON * 1)
+        giverGive(getClient(), self.auction.ADDRESS, TON * 1)
+
+        #print(self.auction.ADDRESS)
+
+    # 2. Deploy multisig
+    def test_2(self):
+        result = self.msig.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.domain.deploy(ownerAddress=self.msig.ADDRESS)
+        self.assertEqual(result[1]["errorCode"], 0)
+
+    # 3. Deploy something else
+    def test_3(self):
+        result = self.factory.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        
+    # 4. Get info
+    def test_4(self):
+        self.factory.setAuctionDnsCode(msig=self.msig, value=TON, code=self.auction.CODE)
+
+        result = self.factory.createAuctionDnsRecord(msig=self.msig, value=TON, 
+            escrowAddress = self.msig.ADDRESS, 
+            escrowPercent = 500, 
+            sellerAddress = self.msig.ADDRESS, 
+            buyerAddress  = self.msig2.ADDRESS, 
+            assetAddress  = self.domain.ADDRESS, 
+            auctionType   = 1, # PUBLIC_BUY 
+            minBid        = TON, 
+            minPriceStep  = TON, 
+            buyNowPrice   = TON*6, 
+            dtStart       = self.dtNow+1, 
+            dtEnd         = self.dtNow+70)
+        
+        result = self.domain.callFromMultisig(msig=self.msig, functionName="changeOwner", functionParams={"newOwnerAddress": self.auction.ADDRESS}, value=100000000, flags=1)
+
+        result = self.auction.receiveAsset(msig=self.msig,  value=100000000)
+        result = self.auction.bid         (msig=self.msig2, value=TON*7)
+        result = self.auction.finalize    (msig=self.msig2, value=TON)
+
+        # second time is a charm
+        result = self.auction.finalize(msig=self.msig2, value=TON)
+        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        #pprint(msgArray)
+
+        result = self.auction.getInfo()
+        result = self.domain.run(functionName="getWhois", functionParams={})
+        self.assertEqual(result["ownerAddress"], self.msig2.ADDRESS)
 
     # 5. Cleanup
     def test_5(self):

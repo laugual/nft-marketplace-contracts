@@ -41,6 +41,11 @@ class AuctionDnsRecord(object):
 
     # ========================================
     #
+    def cancelAuction(self, msig: SetcodeMultisig, value: int):
+        result = self._callFromMultisig(msig=msig, functionName="cancelAuction", functionParams={}, value=value, flags=1)
+        return result
+
+    
     def bid(self, msig: SetcodeMultisig, value: int):
         result = self._callFromMultisig(msig=msig, functionName="bid", functionParams={}, value=value, flags=1)
         return result

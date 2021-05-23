@@ -85,8 +85,8 @@ abstract contract ILiquisorAuction
     function _init() internal inline
     {
         //require(_dtStart >= now,            ERROR_INVALID_START_DATE);
-        require(_dtStart < _dtEnd,          ERROR_INVALID_END_DATE  );
-        require(_dtEnd <= now + 60*60*24*7, ERROR_INVALID_END_DATE  ); // Maximum auction period is 7 days
+        require(_dtStart < _dtEnd,           ERROR_INVALID_END_DATE  );
+        require(_dtEnd <= now + 60*60*24*14, ERROR_INVALID_END_DATE  ); // Maximum auction period is 14 days
         
         tvm.accept();
 
@@ -97,6 +97,19 @@ abstract contract ILiquisorAuction
         _assetDelivered   = false;
         _currentBuyer     = addressZero;
         _currentBuyPrice  = 0;
+    }
+
+    //========================================
+    // Cancel auction
+    function cancelAuction() external onlySeller
+    {
+        require(_currentBuyer == addressZero, ERROR_AUCTION_IN_PROCESS);
+
+        _reserve(); // reserve minimum balance;
+        _auctionSucceeded = true;
+
+        // return the change
+        msg.sender.transfer(0, true, 128);
     }
 
     //========================================
@@ -195,15 +208,16 @@ abstract contract ILiquisorAuction
         }
 
         // No bids were made, return asset to the owner;
-        if(_currentBuyer == addressZero)
+        if(_currentBuyer == addressZero || !_auctionSucceeded)
         {
-            deliverAsset(_sellerAddress);
+            //deliverAsset(_sellerAddress);
+            _moneySentOut = true;  // No need to send out money in this case 
             checkAssetDelivered(); // Ensure that seller got the asset back
             return;
         }
-        if(_auctionType == AUCTION_TYPE.OPEN_AUCTION && _currentBuyer == addressZero)
+        /*if(_auctionType == AUCTION_TYPE.OPEN_AUCTION && _currentBuyer == addressZero)
         {
-            deliverAsset(_sellerAddress);
+            //deliverAsset(_sellerAddress);
             checkAssetDelivered(); // Ensure that seller got the asset back
             return;
         }
@@ -211,11 +225,11 @@ abstract contract ILiquisorAuction
         {
             if(!_auctionSucceeded)
             {
-                deliverAsset(_sellerAddress);
+                //deliverAsset(_sellerAddress);
                 checkAssetDelivered(); // Ensure that seller got the asset back
                 return;
             }
-        }
+        }*/
 
         _sendOutTheMoney();
 
@@ -223,7 +237,7 @@ abstract contract ILiquisorAuction
         // TODO: selfdestruct only after successfull asset transfer?;
         if(!_assetDelivered)
         {
-            deliverAsset(_currentBuyer);
+            //deliverAsset(_currentBuyer);
             checkAssetDelivered(); // Ensure that buyer got the asset back
         }
         else

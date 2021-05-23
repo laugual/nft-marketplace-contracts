@@ -47,6 +47,13 @@
 			]
 		},
 		{
+			"name": "cancelAuction",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
 			"name": "bid",
 			"inputs": [
 			],

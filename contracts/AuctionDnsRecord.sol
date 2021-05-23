@@ -24,7 +24,7 @@ contract AuctionDnsRecord is ILiquisorAuction
     function deliverAsset(address receiver) internal override
     {
         if(_assetDelivered) { return; }
-        IDnsRecord(_assetAddress).changeOwner{value: 0.1 ton, bounce: true, flag: 1}(receiver);
+        IDnsRecord(_assetAddress).changeOwner{value: 0, bounce: true, flag: 128}(receiver);
     }
     
     //========================================
@@ -32,6 +32,11 @@ contract AuctionDnsRecord is ILiquisorAuction
     function checkAssetDelivered() internal override
     {
         _reserve();
+        if(_assetDelivered)
+        {
+            return;
+        }
+
         IDnsRecord(_assetAddress).callWhois{value: 0, callback: callbackOnCheckAssetDelivered, flag: 128}();
     }
     
@@ -42,7 +47,15 @@ contract AuctionDnsRecord is ILiquisorAuction
         _reserve();
         address desiredOwner = (_currentBuyer      == addressZero ? _sellerAddress : _currentBuyer);
         _assetDelivered      = (whois.ownerAddress == desiredOwner);
-        _sellerAddress.transfer(0, true, 128);
+        
+        if(_assetDelivered)
+        {
+             _sellerAddress.transfer(0, true, 128);
+        }
+        else
+        {
+            deliverAsset(desiredOwner);
+        }
     }
 
     //========================================
