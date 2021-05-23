@@ -192,7 +192,11 @@ def runFunction(tonClient: TonClient, abiPath, contractAddress, functionName, fu
     paramsDecode = ParamsOfDecodeMessage(abi=abi, message=result.out_messages[0])
     decoded      = tonClient.abi.decode_message(params=paramsDecode)
 
-    result = decoded.value["value0"]
+    if len(decoded.value) == 1 and list(decoded.value.keys())[0] == "value0":
+        result = decoded.value["value0"]
+    else:
+        result = decoded.value
+
     return result
 
 # ==============================================================================

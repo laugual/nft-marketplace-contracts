@@ -14,27 +14,34 @@ contract AuctionDnsRecord is ILiquisorAuction
 {
     //========================================
     //
-    function transferAsset(address receiver) internal override
+    constructor() public
     {
-        if(_assetTransferred) { return; }
-        IDnsRecord(_assetAddress).changeOwner{value: 0, bounce: true, flag: 128}(receiver);
+        _init();
+    }
+
+    //========================================
+    //
+    function deliverAsset(address receiver) internal override
+    {
+        if(_assetDelivered) { return; }
+        IDnsRecord(_assetAddress).changeOwner{value: 0.1 ton, bounce: true, flag: 1}(receiver);
     }
     
     //========================================
     //
-    function checkAssetTransferred() internal override
+    function checkAssetDelivered() internal override
     {
         _reserve();
-        IDnsRecord(_assetAddress).callWhois{value: 0, callback: callbackOnCheckAssetTransferred, flag: 128}();
+        IDnsRecord(_assetAddress).callWhois{value: 0, callback: callbackOnCheckAssetDelivered, flag: 128}();
     }
     
     //========================================
     //
-    function callbackOnCheckAssetTransferred(DnsWhois whois) public onlyAsset
+    function callbackOnCheckAssetDelivered(DnsWhois whois) public onlyAsset
     {
         _reserve();
         address desiredOwner = (_currentBuyer      == addressZero ? _sellerAddress : _currentBuyer);
-        _assetTransferred    = (whois.ownerAddress == desiredOwner);
+        _assetDelivered      = (whois.ownerAddress == desiredOwner);
         _sellerAddress.transfer(0, true, 128);
     }
 

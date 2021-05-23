@@ -20,6 +20,7 @@ abstract contract ILiquisorAuction
     //========================================
     // Constants
     address constant addressZero = address.makeAddrStd(0, 0);
+    uint128 constant feeValue    = 0.5 ton;
 
     //========================================
     // Error codes
@@ -34,6 +35,8 @@ abstract contract ILiquisorAuction
     uint constant ERROR_MESSAGE_SENDER_IS_NOT_ASSET    = 207;
     uint constant ERROR_INVALID_AUCTION_TYPE           = 208;
     uint constant ERROR_INVALID_BUYER_ADDRESS          = 209;
+    uint constant ERROR_INVALID_START_DATE             = 210;
+    uint constant ERROR_INVALID_END_DATE               = 211;
 
     //========================================
     // Variables
@@ -53,7 +56,7 @@ abstract contract ILiquisorAuction
     bool         _auctionStarted;       //
     bool         _auctionSucceeded;     //
     bool         _moneySentOut;         //
-    bool         _assetTransferred;     //
+    bool         _assetDelivered;       //
     address      _currentBuyer;         //
     uint128      _currentBuyPrice;      //
 
@@ -66,15 +69,32 @@ abstract contract ILiquisorAuction
 
     //========================================
     //
-    constructor() public
+    function getInfo() external view returns(bool, bool, bool, bool, bool, address, uint128)
     {
+        return(_assetReceived, 
+               _auctionStarted, 
+               _auctionSucceeded, 
+               _moneySentOut, 
+               _assetDelivered, 
+               _currentBuyer, 
+               _currentBuyPrice);
+    }
+
+    //========================================
+    //
+    function _init() internal inline
+    {
+        //require(_dtStart >= now,            ERROR_INVALID_START_DATE);
+        require(_dtStart < _dtEnd,          ERROR_INVALID_END_DATE  );
+        require(_dtEnd <= now + 60*60*24*7, ERROR_INVALID_END_DATE  ); // Maximum auction period is 7 days
+        
         tvm.accept();
 
         _assetReceived    = false;
         _auctionStarted   = false; // Start only after we are sure that asset is transfered to auction contract;
         _auctionSucceeded = false; // Finish after time is out or when the public/private buy is done;
         _moneySentOut     = false; // Called when finalize is first called;
-        _assetTransferred = false;
+        _assetDelivered   = false;
         _currentBuyer     = addressZero;
         _currentBuyPrice  = 0;
     }
@@ -84,7 +104,7 @@ abstract contract ILiquisorAuction
     function bid() external
     {
         require(_auctionType < AUCTION_TYPE.NUM, ERROR_INVALID_AUCTION_TYPE );
-        if(_auctionType != AUCTION_TYPE.OPEN_AUCTION)
+        if(_auctionType == AUCTION_TYPE.PRIVATE_BUY)
         {
             require(msg.sender == _buyerAddress && _buyerAddress != addressZero, ERROR_INVALID_BUYER_ADDRESS);
         }
@@ -94,32 +114,49 @@ abstract contract ILiquisorAuction
         else if(_auctionType == AUCTION_TYPE.PUBLIC_BUY)   {    desiredPrice = _buyNowPrice;                                                             }
         else if(_auctionType == AUCTION_TYPE.PRIVATE_BUY)  {    desiredPrice = _buyNowPrice;                                                             }
 
-        require(now >= _dtStart && now <= _dtEnd, ERROR_AUCTION_NOT_RUNNING  );
-        require( _auctionStarted,                 ERROR_AUCTION_NOT_RUNNING  );
-        require(!_auctionSucceeded,               ERROR_AUCTION_ENDED        );
-        require(msg.sender != _currentBuyer,      ERROR_DO_NOT_BEAT_YOURSELF );
-        require(msg.value  >= desiredPrice,       ERROR_NOT_ENOUGH_MONEY     );
+        require(now >= _dtStart && now <= _dtEnd,    ERROR_AUCTION_NOT_RUNNING  );
+        require( _auctionStarted,                    ERROR_AUCTION_NOT_RUNNING  );
+        require(!_auctionSucceeded,                  ERROR_AUCTION_ENDED        );
+        require(msg.sender != _currentBuyer,         ERROR_DO_NOT_BEAT_YOURSELF );
+        require(msg.value  >= desiredPrice+feeValue, ERROR_NOT_ENOUGH_MONEY     );
 
         _reserve(); // reserve minimum balance;
 
         if(_auctionType == AUCTION_TYPE.OPEN_AUCTION)
         {
-            // TODO: if it's the first buyer than there will be an error, because reserve will get everything below 0
-            tvm.rawReserve(msg.value, 0); // reserve new buyer's amount; previous buyer pays the fees;
+            // If there is no BUY NOW price or the bet is lower
+            if(_buyNowPrice == 0 || msg.value - feeValue < _buyNowPrice)
+            {
+                tvm.rawReserve(msg.value - feeValue, 0); // reserve new buyer's amount; previous buyer pays the fees;
+            }
+            else // the bet is above BUY NOW price
+            {
+                tvm.rawReserve(_buyNowPrice, 0); // reserve buy price, we don't want the change;
+                _auctionSucceeded = true;
+            }
+
+            // return TONs to previous buyer;
             if(_currentBuyer != addressZero)
             {
-                _currentBuyer.transfer(0, true, 128); // return TONs to previous buyer (excluding fees);
+                _currentBuyer.transfer(_currentBuyPrice, true, 0); 
             }
+
+            // Update current buyer
+            _currentBuyer    = msg.sender;
+            _currentBuyPrice = msg.value - feeValue;
         }
         else
         {
             tvm.rawReserve(_buyNowPrice, 0); // reserve buy price, we don't want the change;
             _auctionSucceeded = true;
+
+            // Update current buyer
+            _currentBuyer    = msg.sender;
+            _currentBuyPrice = _buyNowPrice;
         }
 
-        // Update current buyer
-        _currentBuyer    = msg.sender;
-        _currentBuyPrice = msg.value;
+        // return the change
+        msg.sender.transfer(0, true, 128);
     }
     
     //========================================
@@ -145,23 +182,37 @@ abstract contract ILiquisorAuction
     function finalize() external
     {
         require(now > _dtEnd || _auctionSucceeded, ERROR_AUCTION_IN_PROCESS);
+        require(msg.value >= 0.3 ton,              ERROR_NOT_ENOUGH_MONEY  );
         
-        // No asset was ever received, 
-        if(!_assetReceived) { return; }
+        _reserve(); // reserve minimum balance;
 
-        // No bids were made, return asset to the owner and all the money to escrow;
+        // No asset was ever received, 
+        if(!_assetReceived) 
+        { 
+            // return the change
+            msg.sender.transfer(0, true, 128);
+            return;
+        }
+
+        // No bids were made, return asset to the owner;
+        if(_currentBuyer == addressZero)
+        {
+            deliverAsset(_sellerAddress);
+            checkAssetDelivered(); // Ensure that seller got the asset back
+            return;
+        }
         if(_auctionType == AUCTION_TYPE.OPEN_AUCTION && _currentBuyer == addressZero)
         {
-            transferAsset(_sellerAddress);
-            checkAssetTransferred(); // Ensure that seller got the asset back
+            deliverAsset(_sellerAddress);
+            checkAssetDelivered(); // Ensure that seller got the asset back
             return;
         }
         else
         {
             if(!_auctionSucceeded)
             {
-                transferAsset(_sellerAddress);
-                checkAssetTransferred(); // Ensure that seller got the asset back
+                deliverAsset(_sellerAddress);
+                checkAssetDelivered(); // Ensure that seller got the asset back
                 return;
             }
         }
@@ -170,8 +221,19 @@ abstract contract ILiquisorAuction
 
         // Transfer asset to a new owner;
         // TODO: selfdestruct only after successfull asset transfer?;
-        transferAsset(_currentBuyer);
-        checkAssetTransferred(); // Ensure that buyer got the asset back
+        if(!_assetDelivered)
+        {
+            deliverAsset(_currentBuyer);
+            checkAssetDelivered(); // Ensure that buyer got the asset back
+        }
+        else
+        {
+            if(_moneySentOut)
+            {
+                // return the change with no fear
+                msg.sender.transfer(0, true, 128);
+            }
+        }
     }
 
     //========================================
@@ -194,11 +256,11 @@ abstract contract ILiquisorAuction
 
     //========================================
     // Called ONLY after auction is finished;
-    function transferAsset(address receiver) internal virtual;
+    function deliverAsset(address receiver) internal virtual;
 
     //========================================
     // Called ONLY after auction is finished;
-    function checkAssetTransferred() internal virtual;
+    function checkAssetDelivered() internal virtual;
     
     //========================================
     // Called BEFORE auction is started;

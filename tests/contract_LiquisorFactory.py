@@ -58,5 +58,13 @@ class LiquisorFactory(object):
         result = self._callFromMultisig(msig=msig, functionName="createNFTCollection", functionParams={"collectionName":stringToHex(collectionName), "ownerAddress":ownerAddress, "ownerPubkey":ownerPubkey, "uploaderPubkey":uploaderPubkey}, value=value, flags=1)
         return result
 
+    def createAuctionDnsRecord(self, msig: SetcodeMultisig, value: int, escrowAddress: str, escrowPercent: int, sellerAddress: str, buyerAddress: str, assetAddress: str, auctionType: int, minBid: int, minPriceStep: int, buyNowPrice: int, dtStart: int, dtEnd: int):
+        result = self._callFromMultisig(msig=msig, functionName="createAuctionDnsRecord", functionParams={
+            "escrowAddress":escrowAddress, "escrowPercent":escrowPercent, "sellerAddress":sellerAddress, 
+            "buyerAddress":buyerAddress,   "assetAddress":assetAddress,   "auctionType":auctionType, 
+            "minBid":minBid,               "minPriceStep":minPriceStep,   "buyNowPrice":buyNowPrice, 
+            "dtStart":dtStart,             "dtEnd":dtEnd}, value=value, flags=1)
+        return result
+
 # ==============================================================================
 # 

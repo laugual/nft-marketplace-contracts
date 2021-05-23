@@ -3,7 +3,14 @@
 	"header": ["pubkey", "time", "expire"],
 	"functions": [
 		{
-			"name": "callbackOnCheckAssetTransferred",
+			"name": "constructor",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "callbackOnCheckAssetDelivered",
 			"inputs": [
 				{"name":"ownerAddress","type":"address"}
 			],
@@ -26,6 +33,20 @@
 			]
 		},
 		{
+			"name": "getInfo",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"value0","type":"bool"},
+				{"name":"value1","type":"bool"},
+				{"name":"value2","type":"bool"},
+				{"name":"value3","type":"bool"},
+				{"name":"value4","type":"bool"},
+				{"name":"value5","type":"address"},
+				{"name":"value6","type":"uint128"}
+			]
+		},
+		{
 			"name": "bid",
 			"inputs": [
 			],
@@ -34,13 +55,6 @@
 		},
 		{
 			"name": "finalize",
-			"inputs": [
-			],
-			"outputs": [
-			]
-		},
-		{
-			"name": "constructor",
 			"inputs": [
 			],
 			"outputs": [

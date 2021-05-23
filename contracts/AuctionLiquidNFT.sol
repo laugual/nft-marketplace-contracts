@@ -14,27 +14,34 @@ contract AuctionLiquidNFT is ILiquisorAuction
 {
     //========================================
     //
-    function transferAsset(address receiver) internal override
+    constructor() public
     {
-        if(_assetTransferred) { return; }
-        LiquidNFT(_assetAddress).changeOwner{value: 0, bounce: true, flag: 128}(receiver);
+        _init();
+    }
+
+    //========================================
+    //
+    function deliverAsset(address receiver) internal override
+    {
+        if(_assetDelivered) { return; }
+        LiquidNFT(_assetAddress).changeOwner{value: 0.1 ton, bounce: true, flag: 1}(receiver);
     }
     
     //========================================
     //
-    function checkAssetTransferred() internal override
+    function checkAssetDelivered() internal override
     {
         _reserve();
-        LiquidNFT(_assetAddress).callOwnerAddress{value: 0, callback: callbackOnCheckAssetTransferred, flag: 128}();
+        LiquidNFT(_assetAddress).callOwnerAddress{value: 0, callback: callbackOnCheckAssetDelivered, flag: 128}();
     }
     
     //========================================
     //
-    function callbackOnCheckAssetTransferred(address ownerAddress) public onlyAsset
+    function callbackOnCheckAssetDelivered(address ownerAddress) public onlyAsset
     {
         _reserve();
         address desiredOwner = (_currentBuyer == addressZero ? _sellerAddress : _currentBuyer);
-        _assetTransferred    = ( ownerAddress == desiredOwner);
+        _assetDelivered      = ( ownerAddress == desiredOwner);
         _sellerAddress.transfer(0, true, 128);
     }
 

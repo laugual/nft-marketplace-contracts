@@ -13,6 +13,8 @@ from   pprint import pprint
 from   contract_LiquidNFT           import LiquidNFT
 from   contract_LiquidNFTCollection import LiquidNFTCollection
 from   contract_LiquisorFactory     import LiquisorFactory
+from   contract_AuctionDnsRecord    import AuctionDnsRecord
+from   contract_DnsRecordTEST       import DnsRecordTEST
 
 TON = 1000000000
 SERVER_ADDRESS = "https://net.ton.dev"
@@ -50,7 +52,7 @@ for _, arg in enumerate(sys.argv[1:]):
 # EXIT CODE FOR SINGLE-MESSAGE OPERATIONS
 # we know we have only 1 internal message, that's why this wrapper has no filters
 def _getAbiArray():
-    return ["../bin/LiquidNFT.abi.json", "../bin/LiquidNFTCollection.abi.json", "../bin/LiquisorFactory.abi.json", "../bin/SetcodeMultisigWallet.abi.json"]
+    return ["../bin/LiquidNFT.abi.json", "../bin/LiquidNFTCollection.abi.json", "../bin/LiquisorFactory.abi.json", "../bin/AuctionDnsRecord.abi.json", "../bin/SetcodeMultisigWallet.abi.json"]
 
 def _getExitCode(msgIdArray):
     abiArray     = _getAbiArray()
@@ -136,6 +138,8 @@ class Test_01_DeployCollection(unittest.TestCase):
         result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
         self.assertEqual(result[1]["errorCode"], 0)
 
+# ==============================================================================
+# 
 class Test_02_DeployCollectionFromFactory(unittest.TestCase):
 
     msig       = SetcodeMultisig(tonClient=getClient())
@@ -182,6 +186,113 @@ class Test_02_DeployCollectionFromFactory(unittest.TestCase):
     # 5. Cleanup
     def test_5(self):
         result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+# ==============================================================================
+# 
+class Test_03_DeployDnsAuction(unittest.TestCase):
+
+    msig    = SetcodeMultisig(tonClient=getClient())
+    msig2   = SetcodeMultisig(tonClient=getClient())
+    factory = LiquisorFactory(tonClient=getClient(), ownerAddress=msig.ADDRESS)
+    domain  = DnsRecordTEST(tonClient=getClient(), name="kek")
+    dtNow   = getNowTimestamp()
+    
+    auction = AuctionDnsRecord(
+        tonClient     = getClient(), 
+        escrowAddress = msig.ADDRESS, 
+        escrowPercent = 500, 
+        sellerAddress = msig.ADDRESS, 
+        buyerAddress  = msig2.ADDRESS, 
+        assetAddress  = domain.ADDRESS, 
+        auctionType   = 2, # PRIVATE_BUY 
+        minBid        = TON, 
+        minPriceStep  = TON, 
+        buyNowPrice   = TON*6, 
+        dtStart       = dtNow+1, 
+        dtEnd         = dtNow+70)
+    
+    def test_0(self):
+        print("\n\n----------------------------------------------------------------------")
+        print("Running:", self.__class__.__name__)
+
+    # 1. Giver
+    def test_1(self):
+        giverGive(getClient(), self.msig.ADDRESS,    TON * 10)
+        giverGive(getClient(), self.msig2.ADDRESS,   TON * 20)
+        giverGive(getClient(), self.factory.ADDRESS, TON * 1)
+        giverGive(getClient(), self.domain.ADDRESS,  TON * 1)
+        giverGive(getClient(), self.auction.ADDRESS, TON * 1)
+
+        #print(self.auction.ADDRESS)
+
+    # 2. Deploy multisig
+    def test_2(self):
+        result = self.msig.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.domain.deploy(ownerAddress=self.msig.ADDRESS)
+        self.assertEqual(result[1]["errorCode"], 0)
+
+    # 3. Deploy something else
+    def test_3(self):
+        result = self.factory.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        
+    # 4. Get info
+    def test_4(self):
+        self.factory.setAuctionDnsCode(msig=self.msig, value=TON, code=self.auction.CODE)
+
+        result = self.factory.createAuctionDnsRecord(msig=self.msig, value=TON, 
+            escrowAddress = self.msig.ADDRESS, 
+            escrowPercent = 500, 
+            sellerAddress = self.msig.ADDRESS, 
+            buyerAddress  = self.msig2.ADDRESS, 
+            assetAddress  = self.domain.ADDRESS, 
+            auctionType   = 2, # PRIVATE_BUY 
+            minBid        = TON, 
+            minPriceStep  = TON, 
+            buyNowPrice   = TON*6, 
+            dtStart       = self.dtNow+1, 
+            dtEnd         = self.dtNow+70)
+        
+        result = self.domain.callFromMultisig(msig=self.msig, functionName="changeOwner", functionParams={"newOwnerAddress": self.auction.ADDRESS}, value=100000000, flags=1)
+
+        result = self.auction.receiveAsset(msig=self.msig, value=100000000)
+        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+
+        result = self.auction.bid(msig=self.msig2, value=TON*7)
+        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        #pprint(msgArray)
+
+        result = self.auction.finalize(msig=self.msig2, value=TON)
+        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        pprint(msgArray)
+
+        print("---------------------")
+        result = self.auction.finalize(msig=self.msig2, value=TON)
+        msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        pprint(msgArray)
+
+
+        #msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        #pprint(msgArray)
+
+        result = self.auction.getInfo()
+        print(result)
+
+        result = self.domain.run(functionName="getWhois", functionParams={})
+        print("msig:", self.msig.ADDRESS, "\nmsig2:", self.msig2.ADDRESS, "\nauction:", self.auction.ADDRESS, "\ndomain:", result["ownerAddress"])
+
+    # 5. Cleanup
+    def test_5(self):
+        result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+        result = self.domain.destroy(addressDest = freeton_utils.giverGetAddress())
         self.assertEqual(result[1]["errorCode"], 0)
 
 # ==============================================================================

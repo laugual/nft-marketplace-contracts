@@ -3,7 +3,14 @@
 	"header": ["pubkey", "time", "expire"],
 	"functions": [
 		{
-			"name": "callbackOnCheckAssetTransferred",
+			"name": "constructor",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "callbackOnCheckAssetDelivered",
 			"inputs": [
 				{"components":[{"name":"endpointAddress","type":"address"},{"name":"segmentsCount","type":"uint8"},{"name":"domainName","type":"bytes"},{"name":"parentDomainName","type":"bytes"},{"name":"parentDomainAddress","type":"address"},{"name":"ownerAddress","type":"address"},{"name":"dtLastProlongation","type":"uint32"},{"name":"dtExpires","type":"uint32"},{"name":"registrationPrice","type":"uint128"},{"name":"registrationType","type":"uint8"},{"name":"lastRegResult","type":"uint8"},{"name":"comment","type":"bytes"},{"name":"dtCreated","type":"uint32"},{"name":"totalOwnersNum","type":"uint128"},{"name":"subdomainRegAccepted","type":"uint128"},{"name":"subdomainRegDenied","type":"uint128"},{"name":"totalFeesCollected","type":"uint128"}],"name":"whois","type":"tuple"}
 			],
@@ -26,6 +33,20 @@
 			]
 		},
 		{
+			"name": "getInfo",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"value0","type":"bool"},
+				{"name":"value1","type":"bool"},
+				{"name":"value2","type":"bool"},
+				{"name":"value3","type":"bool"},
+				{"name":"value4","type":"bool"},
+				{"name":"value5","type":"address"},
+				{"name":"value6","type":"uint128"}
+			]
+		},
+		{
 			"name": "bid",
 			"inputs": [
 			],
@@ -34,13 +55,6 @@
 		},
 		{
 			"name": "finalize",
-			"inputs": [
-			],
-			"outputs": [
-			]
-		},
-		{
-			"name": "constructor",
 			"inputs": [
 			],
 			"outputs": [
