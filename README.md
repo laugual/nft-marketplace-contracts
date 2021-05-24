@@ -9,11 +9,11 @@
 
 * `NFT Collection` - Token collection. Current approach follows "no-token-wallet" idea.
 
-The idea behind this is that a person can (and should) have multiple collections that group NFTs logically. Logical grouping implies keeping "Flower NFTs" in one collection, "Coin NFTs" in the other, "Pokemon NFT cards" in third, etc.
+The idea behind Collections is that a person can _(and should)_ have multiple collections that group NFTs logically. Logical grouping implies keeping `Flower NFTs` in one collection, `Coin NFTs` in the other, `Pokemon NFTs` in third, etc.
 
-Collection also has media (like NFT does) and is used to keep Collection cover and description.
+Collection also has media _(like NFT does)_ and is used to keep Collection cover and description.
 
-* `Token` - Original TIP-3 NFTs suggested having a wallet that keeps the list of IDs, and each ID represents an NFT. This approach limits the freedom of NFT creation as NFTs are "faceless" IDs that mean nothing without target media.
+* `Token` - Original TIP-3 NFTs suggested having a wallet that keeps the list of IDs, and each ID represents an NFT. This approach limits the freedom of NFT creation as NFTs are `faceless` IDs that mean nothing without target media.
 
 Our approach extends NFTs to be `Token = Contract`, each NFT is a separate contract that holds arbitrary attributes and has the owner.
 
@@ -65,9 +65,9 @@ struct nftMedia
 }
 ```
 
-`contents` - NFT contents. Either binary file (every array item represents a chunk in binary hex), or arbitrary link/hash to NFT media.
+`contents` - NFT contents. Either binary file _(every array item represents a chunk in binary hex)_, or arbitrary link/hash to NFT media.
 
-`extension` - Type of the contents: extension for binary files (e.g. `gif`, `png`, `mp4` etc.) or type for the link/hash (e.g. `#url`, `#hash`, `#address` etc.).
+`extension` - Type of the contents: extension for binary files _(e.g. `gif`, `png`, `mp4` etc.)_ or type for the link/hash _(e.g. `#url`, `#hash`, `#address` etc.)_.
 
 `name` - Name of the token, e.g. `Mona Lisa`.
 
@@ -129,7 +129,7 @@ function sealMedia(bytes extension, bytes name, bytes comment)
 
 #### touch
 
-Owner can touch his NFTs (One of the ways to pay storage fees for the contract)
+Owner can touch his NFTs (One of the ways to pay storage fees for the contract).
 
 ACCESS: Owner.
 
