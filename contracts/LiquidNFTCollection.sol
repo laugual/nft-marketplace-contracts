@@ -66,7 +66,7 @@ contract LiquidNFTCollection is ILiquidNFT
 
     //========================================
     //
-    function createEmptyNFT(uint256 uploaderPubkey) public onlyOwner isSealed reserve
+    function createEmptyNFT(uint256 uploaderPubkey) external onlyOwner isSealed reserve
     {
         ( , TvmCell stateInit) = calculateFutureNFTAddress(_tokensIssued);
         new LiquidNFT{value: 0, flag: 128, stateInit: stateInit}(_info.ownerAddress, uploaderPubkey);
