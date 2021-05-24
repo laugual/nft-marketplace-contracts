@@ -59,6 +59,7 @@ abstract contract ILiquisorAuction
     bool         _assetDelivered;       //
     address      _currentBuyer;         //
     uint128      _currentBuyPrice;      //
+    uint32       _currentBuyDT;         //
 
     //========================================
     // Modifiers
@@ -69,15 +70,45 @@ abstract contract ILiquisorAuction
 
     //========================================
     //
-    function getInfo() external view returns(bool, bool, bool, bool, bool, address, uint128)
+    function getInfo() external view returns(address      escrowAddress,
+                                             uint128      escrowPercent,
+                                             address      sellerAddress,
+                                             address      buyerAddress,
+                                             address      assetAddress,
+                                             AUCTION_TYPE auctionType,
+                                             uint128      minBid,
+                                             uint128      minPriceStep,
+                                             uint128      buyNowPrice,
+                                             uint32       dtStart,
+                                             uint32       dtEnd,
+                                             bool         assetReceived,
+                                             bool         auctionStarted,
+                                             bool         auctionSucceeded,
+                                             bool         moneySentOut,
+                                             bool         assetDelivered,
+                                             address      currentBuyer,
+                                             uint128      currentBuyPrice,
+                                             uint32       currentBuyDT)
     {
-        return(_assetReceived, 
-               _auctionStarted, 
-               _auctionSucceeded, 
-               _moneySentOut, 
-               _assetDelivered, 
-               _currentBuyer, 
-               _currentBuyPrice);
+        return(_escrowAddress,
+               _escrowPercent,
+               _sellerAddress,
+               _buyerAddress,
+               _assetAddress,
+               _auctionType,
+               _minBid,
+               _minPriceStep,
+               _buyNowPrice,
+               _dtStart,
+               _dtEnd,
+               _assetReceived,
+               _auctionStarted,
+               _auctionSucceeded,
+               _moneySentOut,
+               _assetDelivered,
+               _currentBuyer,
+               _currentBuyPrice,
+               _currentBuyDT);
     }
 
     //========================================
@@ -97,6 +128,7 @@ abstract contract ILiquisorAuction
         _assetDelivered   = false;
         _currentBuyer     = addressZero;
         _currentBuyPrice  = 0;
+        _currentBuyDT     = 0;
     }
 
     //========================================
@@ -157,6 +189,7 @@ abstract contract ILiquisorAuction
             // Update current buyer
             _currentBuyer    = msg.sender;
             _currentBuyPrice = msg.value - feeValue;
+            _currentBuyDT    = now;
         }
         else
         {
@@ -166,6 +199,7 @@ abstract contract ILiquisorAuction
             // Update current buyer
             _currentBuyer    = msg.sender;
             _currentBuyPrice = _buyNowPrice;
+            _currentBuyDT    = now;
         }
 
         // return the change

@@ -23,13 +23,6 @@ struct nftMedia
 
 //================================================================================
 //
-interface IMediaProducer
-{
-    function getMedia() external view responsible returns (nftMedia);
-}
-
-//================================================================================
-//
 abstract contract ILiquidNFT
 {
     //========================================
