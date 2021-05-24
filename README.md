@@ -1,7 +1,8 @@
-# NFT Marketplace smart contracts
+# LiquiSOR NFT Marketplace
 
 ## Summary
-...
+
+Contracts, artifacts and tests for LiquiSOR NFT Marketplace.
 
 ## Entities
 
