@@ -23,7 +23,7 @@ Our approach extends NFTs to be `Token = Contract`, each NFT is a separate contr
 
 ## Contracts 
 
-### Common functions for LiquidNFTCollection and LiquidNFT
+### Common functions for `LiquidNFTCollection.sol` and `LiquidNFT.sol`
 
 #### getInfo
 
@@ -47,12 +47,12 @@ struct nftInfo
 
 ``` js
 function getInfo() external view returns (nftInfo)
-function callInfo() external responsible view reserve returns (nftInfo)
+function callInfo() external responsible view returns (nftInfo)
 ```
 
 #### getMedia
 
-Returns the NFT information using the following structure:
+Returns the NFT media data using the following structure:
 
 ``` js
 struct nftMedia
@@ -78,27 +78,27 @@ struct nftMedia
 
 ``` js
 function getMedia() external view returns (nftMedia)
-function callMedia() external responsible view reserve returns (nftMedia)
+function callMedia() external responsible view returns (nftMedia)
 ```
 
 
 #### getOwnerAddress
 
-Returns current owner address. For external messages only.
+Returns current owner address.
 
 ``` js
 function getOwnerAddress() external view returns (address)
-function callOwnerAddress() external responsible view reserve returns (address)
+function callOwnerAddress() external responsible view returns (address)
 ```
 
 #### changeOwner
 
-Transfers ownership of the NFT to `newOwnerAddress`. NFT needs to have attribute `isSealed` to perform the transfer. For external messages only.
+Transfers ownership of the NFT to `newOwnerAddress`. NFT needs to have attribute `isSealed` to perform the transfer.
 
 ACCESS: Owner; Sealed.
 
 ``` js
-function changeOwner(address newOwnerAddress) external
+function changeOwner(address newOwnerAddress)
 function callChangeOwner(address newOwnerAddress) external responsible returns (address)
 ```
 
@@ -108,13 +108,13 @@ Uploads `data` into `partNum` array index of total `partsTotal` array length.
 
 `setMediaPartExternal` is used to directly upload data without multisig _(transferring TONs to NFT account is rewquired, because `tvm.accept()` is used)_. 
 
-REASONING: Forward fees for 1 Kb of data costs 0.01 TON, when uploading via multisig you pay double the fees _(first is external message to multisig; second - message from multisig to NFT)_. Direct upload allows you to pay only for one forward fee.
+REASONING: Forward fees for 1 Kb of data cost 0.01 TON, when uploading via multisig you pay double fees _(first is external message to multisig; second - message from multisig to NFT)_. Direct upload allows you to pay only for one forward fee.
 
 ACCESS: Owner _(or Pubkey if set)_; Not Sealed.
 
 ``` js
-function setMediaPart(uint256 partNum, uint256 partsTotal, bytes data) external
-function setMediaPartExternal(uint256 partNum, uint256 partsTotal, bytes data) external
+function setMediaPart(uint256 partNum, uint256 partsTotal, bytes data)
+function setMediaPartExternal(uint256 partNum, uint256 partsTotal, bytes data)
 ```
 
 #### sealMedia
@@ -129,16 +129,13 @@ function sealMedia(bytes extension, bytes name, bytes comment)
 
 #### touch
 
-Owner can touch his NFTs.
-(One of the ways to pay storage fees for the contract)
+Owner can touch his NFTs (One of the ways to pay storage fees for the contract)
 
 ACCESS: Owner.
 
 ``` js
-function touch() external view
+function touch()
 ```
-
-
 
 ### Unique contract functions for `LiquisorFactory.sol`
 
@@ -162,7 +159,7 @@ function createEmptyNFT(uint256 uploaderPubkey)
 
 #### constructor
 
-Creates a new Collection with `ownerAddress` and optional `uploaderPubkey` to upload the cover. This Pubkey can be used to directly update media inside Collection _(while not yet Sealed)_.
+Creates a new NFT with `ownerAddress` and optional `uploaderPubkey` to upload media. This Pubkey can be used to directly update media inside NFT _(while not yet Sealed)_.
 
 ACCESS: Collection contract only.
 
@@ -184,7 +181,7 @@ function createNFTCollection(bytes collectionName, address ownerAddress, uint256
 
 Creates a new Auction to sell DnsRecord contract.
 
-LIMITATIONS: Yo can't create an auction with more than 14 days length, we don't want your asset to be locked for years.
+LIMITATIONS: Yo can't create an auction with duration more than 14 days, we don't want your asset to be locked for years.
 
 ``` js
 function createAuctionDnsRecord(address      escrowAddress, 
@@ -204,7 +201,7 @@ function createAuctionDnsRecord(address      escrowAddress,
 
 Creates a new Auction to sell LiquidNFT contract.
 
-LIMITATIONS: Yo can't create an auction with more than 14 days length, we don't want your asset to be locked for years.
+LIMITATIONS: Yo can't create an auction with duration more than 14 days, we don't want your asset to be locked for years.
 
 ``` js
 function createAuctionLiquidNFT(address      escrowAddress, 
@@ -235,6 +232,8 @@ function createAuctionLiquidNFT(address      escrowAddress,
 Auction checks that he is the owner of the asset. In order to start an Auction asset's `ownerAddress` should be changed to Auction address. It excludes any frauds and scam actions that asset owner can try to plot.
 
 If the asset is transferred, calling this function will start the Auction automatically.
+
+PLEASE BE SURE TO TRANSFER YOUR ASSET ONLY TO VALID AUCTIONS!
 
 ACCESS: Seller only _(and only before auction starts)_.
 
@@ -268,10 +267,3 @@ Finalizes auction results when auction is over. If there is a buyer, he gets an 
 ``` js
 function finalize()
 ```
-
-
-
-
-
-
-
